@@ -1,3 +1,36 @@
+import pandas as pd
+
+# -----------------------------
+# LOAD DATA (THIS WAS MISSING)
+# -----------------------------
+df = pd.read_csv("mixpanel_export.csv")
+
+# safety check
+if df.empty:
+    print("No data found in mixpanel_export.csv")
+    exit()
+
+# ensure required columns exist safely
+for col in ["client", "visit_id", "event_prequal", "event_preapproval"]:
+    if col not in df.columns:
+        df[col] = None
+
+# convert booleans safely
+df["event_prequal"] = df["event_prequal"].fillna(False).astype(bool)
+df["event_preapproval"] = df["event_preapproval"].fillna(False).astype(bool)
+
+# time features (only if timestamp exists)
+if "timestamp" in df.columns:
+    df["timestamp"] = pd.to_datetime(df["timestamp"], errors="coerce")
+    df["day"] = df["timestamp"].dt.day_name()
+    df["hour"] = df["timestamp"].dt.hour
+    df["period"] = df["hour"].apply(lambda x: "AM" if x < 12 else "PM")
+else:
+    df["day"] = "Unknown"
+    df["hour"] = 0
+    df["period"] = "AM"
+
+
 # -----------------------------
 # STRUCTURED OUTPUT TABLES
 # -----------------------------
@@ -20,7 +53,6 @@ for client, cdf in df.groupby('client'):
     bounced_users = cdf.groupby('visit_id')['event_prequal'].max() == False
     bounce_rate = bounced_users.sum() / visits if visits else 0
 
-    # SUMMARY
     summary_rows.append({
         "client": client,
         "visits": visits,
@@ -30,22 +62,21 @@ for client, cdf in df.groupby('client'):
         "preapprovals": preapprovals
     })
 
-    # CHANNEL
-    channel_dist = cdf.groupby('channel')['visit_id'].nunique() / visits * 100
-    for k, v in channel_dist.items():
-        channel_rows.append({"client": client, "channel": k, "%": round(v,1)})
+    if "channel" in cdf.columns:
+        channel_dist = cdf.groupby('channel')['visit_id'].nunique() / visits * 100
+        for k, v in channel_dist.items():
+            channel_rows.append({"client": client, "channel": k, "%": round(v,1)})
 
-    # DEVICE
-    device_dist = cdf.groupby('device')['visit_id'].nunique() / visits * 100
-    for k, v in device_dist.items():
-        device_rows.append({"client": client, "device": k, "%": round(v,1)})
+    if "device" in cdf.columns:
+        device_dist = cdf.groupby('device')['visit_id'].nunique() / visits * 100
+        for k, v in device_dist.items():
+            device_rows.append({"client": client, "device": k, "%": round(v,1)})
 
-    # PROVINCE
-    province_dist = cdf.groupby('province')['visit_id'].nunique() / visits * 100
-    for k, v in province_dist.items():
-        province_rows.append({"client": client, "province": k, "%": round(v,1)})
+    if "province" in cdf.columns:
+        province_dist = cdf.groupby('province')['visit_id'].nunique() / visits * 100
+        for k, v in province_dist.items():
+            province_rows.append({"client": client, "province": k, "%": round(v,1)})
 
-    # TIME
     time_group = cdf.groupby(['day','hour'])['visit_id'].nunique().reset_index()
     for _, row in time_group.iterrows():
         time_rows.append({
@@ -55,17 +86,17 @@ for client, cdf in df.groupby('client'):
             "visits": row['visit_id']
         })
 
-    # PEAK HOURS
     peak = cdf.groupby(['day','period','hour']).size().reset_index(name='count')
-    peak = peak.loc[peak.groupby(['day','period'])['count'].idxmax()]
+    if not peak.empty:
+        peak = peak.loc[peak.groupby(['day','period'])['count'].idxmax()]
 
-    for _, row in peak.iterrows():
-        peak_rows.append({
-            "client": client,
-            "day": row['day'],
-            "period": row['period'],
-            "hour": row['hour']
-        })
+        for _, row in peak.iterrows():
+            peak_rows.append({
+                "client": client,
+                "day": row['day'],
+                "period": row['period'],
+                "hour": row['hour']
+            })
 
 
 # -----------------------------
