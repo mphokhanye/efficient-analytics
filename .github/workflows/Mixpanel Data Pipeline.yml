@@ -2,19 +2,28 @@ name: Mixpanel Data Pipeline
 
 on:
   workflow_dispatch:
+    inputs:
+      from_date:
+        description: "Start date (YYYY-MM-DD)"
+        required: true
+        default: "2026-03-28"
+      to_date:
+        description: "End date (YYYY-MM-DD)"
+        required: true
+        default: "2026-04-28"
 
 jobs:
-  run-mixpanel-export:
+  run-mixpanel-pipeline:
     runs-on: ubuntu-latest
 
     steps:
       # 1. Checkout repo
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       # 2. Set up Python
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: "3.11"
 
@@ -24,19 +33,24 @@ jobs:
           python -m pip install --upgrade pip
           pip install pandas requests
 
-      # 4. Run Mixpanel script
-      - name: Run data pipeline
+      # 4. Run Mixpanel export FIRST to generate mixpanel_export.csv
+      - name: Fetch Mixpanel data
         env:
           MIXPANEL_API_SECRET: ${{ secrets.MIXPANEL_API_SECRET }}
-          FROM_DATE: "2026-03-28"
-          TO_DATE: "2026-04-28"
+          FROM_DATE: ${{ github.event.inputs.from_date }}
+          TO_DATE: ${{ github.event.inputs.to_date }}
+        run: python mixpanel_export.py
+
+      # 5. Run dashboard/cleaning script on the exported data
+      - name: Run data pipeline
         run: python dashboard.py
 
-      # 5. Upload outputs so you can download them
+      # 6. Upload outputs so you can download them
       - name: Upload output files
         uses: actions/upload-artifact@v4
         with:
-          name: mixpanel-exports
+          name: mixpanel-exports-${{ github.event.inputs.from_date }}-to-${{ github.event.inputs.to_date }}
           path: |
             mixpanel_export.csv
             client_summary.csv
+          retention-days: 30
