@@ -16,7 +16,7 @@ if not API_SECRET:
 
 def export_mixpanel_data(api_secret, from_date, to_date):
     """Pull raw events from Mixpanel Export API for a given date range."""
-    url = "https://eu.mixpanel.com/api/2.0/export"
+    url = "https://data-eu.mixpanel.com/api/2.0/export"
 
     print(f"Fetching events from {from_date} to {to_date}...")
 
