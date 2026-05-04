@@ -1,0 +1,42 @@
+name: Mixpanel Data Pipeline
+
+on:
+  workflow_dispatch:
+
+jobs:
+  run-mixpanel-export:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Checkout repo
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      # 2. Set up Python
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+
+      # 3. Install dependencies
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pandas requests
+
+      # 4. Run Mixpanel script
+      - name: Run data pipeline
+        env:
+          MIXPANEL_API_SECRET: ${{ secrets.MIXPANEL_API_SECRET }}
+          FROM_DATE: "2026-03-28"
+          TO_DATE: "2026-04-28"
+        run: python dashboard.py
+
+      # 5. Upload outputs so you can download them
+      - name: Upload output files
+        uses: actions/upload-artifact@v4
+        with:
+          name: mixpanel-exports
+          path: |
+            mixpanel_export.csv
+            client_summary.csv
