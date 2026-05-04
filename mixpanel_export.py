@@ -1,14 +1,18 @@
 import requests
 import json
 import csv
+import os
 from datetime import datetime
 
-# ─── CONFIG ────────────────────────────────────────────────────────────────────
-API_SECRET = "YOUR_API_SECRET"   # Replace with your rotated API secret
-FROM_DATE  = "2026-03-28"
-TO_DATE    = "2026-04-28"
+# ─── CONFIG (reads from environment variables) ──────────────────────────────────
+API_SECRET  = os.environ.get("MIXPANEL_API_SECRET")
+FROM_DATE   = os.environ.get("FROM_DATE", "2026-03-28")
+TO_DATE     = os.environ.get("TO_DATE",   "2026-04-28")
 OUTPUT_FILE = "mixpanel_export.csv"
 # ───────────────────────────────────────────────────────────────────────────────
+
+if not API_SECRET:
+    raise ValueError("MIXPANEL_API_SECRET environment variable is not set.")
 
 def export_mixpanel_data(api_secret, from_date, to_date):
     """Pull raw events from Mixpanel Export API for a given date range."""
