@@ -1,0 +1,37 @@
+name: Process Data
+
+on:
+  push:
+    paths:
+      - 'raw_data.csv'
+
+jobs:
+  run-script:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install packages
+        run: pip install -r requirements.txt
+
+      - name: Run script
+        run: python dashboard.py
+
+      - name: Upload outputs
+        uses: actions/upload-artifact@v4
+        with:
+          name: processed-data
+          path: |
+            client_summary.csv
+            channel_distribution.csv
+            device_distribution.csv
+            province_distribution.csv
+            time_activity.csv
+            peak_hours.csv
