@@ -1,8 +1,5 @@
 import pandas as pd
 
-# -----------------------------
-# LOAD DATA (THIS WAS MISSING)
-# -----------------------------
 df = pd.read_csv("mixpanel_export.csv")
 
 # safety check
